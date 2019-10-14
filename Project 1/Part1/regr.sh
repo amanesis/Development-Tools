@@ -69,10 +69,10 @@ do                                                                              
 
     A=$(echo "scale=2; (${LINES_IN_FILES[$COUNTER3]} * ${SUMXY} - ${SUMX} * ${SUMY}) / (${LINES_IN_FILES[$COUNTER3]} * ${SUMX2} - ${SUMX} * ${SUMX})" | bc)
     B=$(echo "scale=2; (${SUMY} - ${A} * ${SUMX}) / ${LINES_IN_FILES[$COUNTER3]}" | bc)
-    ERR1=$(echo "scale=2; ${Y_ARRAY[$((i + FIXER))]}/1" | bc)
-    ERR2=$(echo "scale=2; (${A} * ${X_ARRAY[$((i + FIXER))]} + ${B})/1" | bc )
+    ERR1=$(echo "scale=2; ${Y_ARRAY[$((i + FIXER))]}" | bc)
+    ERR2=$(echo "scale=2; (${A} * ${X_ARRAY[$((i + FIXER))]} + ${B})" | bc )
     ERR=$(echo "scale=2;  ${ERR} + (${ERR1} - ${ERR2}) * (${ERR1} - ${ERR2})" | bc )        #In manual pages of bc explained that subtraction won't read scale variable so we divide by 1
-
+	## power operator ** doesnt work, for reasons ???
   done
   FIXER=$FIXER+${LINES_IN_FILES[$COUNTER3]}
 
