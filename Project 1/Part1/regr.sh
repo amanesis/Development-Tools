@@ -17,7 +17,7 @@ do                                                                              
   COUNTER1=0                                                                    #Just a regular counter
   XY_ARRAY=()                                                                   #Re-Initializing the array
   OLDIFS="$IFS"                                                                 #Dont mess with the old IFS... Keep track of it
-  IFS=$'\n:'                                                                    #IFS now will change element after new line or the character ":"
+  IFS=$'\n:'                                                                    #IFS now will change element after new line or the character ":" *internal field separator*
   for line in $(cat $1)                                                         #Read the current file into the array line by line ( or :)
   do
     XY_ARRAY[$COUNTER1]=$line
@@ -37,6 +37,7 @@ Y_ARRAY=()
 COUNTER2=0
 while [ $COUNTER2 -le $SIZE_OF_FILE_TO_ARRAY ]                                  #Because of X and Y are comming in pair we know that there is un even number of Xs and Ys.
 do                                                                              #Because of the way we fill our array the pair always starts with un X followed by Y.
+
   if [ $(($COUNTER2%2)) -eq 0 ]                                                 #So if the pointer is on an even # of cell that mast be an X otherwise Y.
   then                                                                          #In this way we creating two arrays that containing all the Xs and Ys.
     X_ARRAY+=("${FILE_TO_ARRAY[$COUNTER2]}")                                    #The two arrays are in form of X_ARRAY[X1.1 .. X1.N X2.1 .. X2.N Xn.1 .. Xn.n ] Y_ARRAY[...]
@@ -45,7 +46,6 @@ do                                                                              
   fi
   ((COUNTER2++))
 done
-
 
 COUNTER3=0
 FIXER=0
@@ -59,25 +59,29 @@ do                                                                              
   B=0                                                                           #by overwritting their values until they get their final value.
   ERR=0
   ERR1=0                                                                        #A FIXER variable used to jumb the pointer to the apropriate
-  ERR2=0                                                                        #cell (for the next file) after the for-loop resets.
+                                                                                #cell (for the next file) after the for-loop resets.
   for ((i=0; i<${LINES_IN_FILES[$COUNTER3]}; i++))
   do
-    SUMX=$(echo "scale=2; ${SUMX} + ${X_ARRAY[$((i + FIXER))]}" | bc)
-    SUMX2=$(echo "scale=2; ${SUMX2} + ${X_ARRAY[$((i + FIXER))]} * ${X_ARRAY[$((i + FIXER))]}" | bc)
-    SUMY=$(echo "scale=2; ${SUMY} + ${Y_ARRAY[$((i + FIXER))]}" | bc)
-    SUMXY=$(echo "scale=2; ${SUMXY} + ${X_ARRAY[$((i + FIXER))]} * ${Y_ARRAY[$((i + FIXER))]}" | bc)
+    SUMX=$(echo "scale=2; ${SUMX} + ( ${X_ARRAY[$((i + FIXER))]} )" | bc)
 
-    A=$(echo "scale=2; (${LINES_IN_FILES[$COUNTER3]} * ${SUMXY} - ${SUMX} * ${SUMY}) / (${LINES_IN_FILES[$COUNTER3]} * ${SUMX2} - ${SUMX} * ${SUMX})" | bc)
-    B=$(echo "scale=2; (${SUMY} - ${A} * ${SUMX}) / ${LINES_IN_FILES[$COUNTER3]}" | bc)
-    ERR1=$(echo "scale=2; ${Y_ARRAY[$((i + FIXER))]}" | bc)
-    ERR2=$(echo "scale=2; (${A} * ${X_ARRAY[$((i + FIXER))]} + ${B})" | bc )
-    ERR=$(echo "scale=2;  ${ERR} + (${ERR1} - ${ERR2}) * (${ERR1} - ${ERR2})" | bc )        #In manual pages of bc explained that subtraction won't read scale variable so we divide by 1
-	## power operator ** doesnt work, for reasons ???
+    SUMX2=$(echo "scale=2; ${SUMX2} + ( ${X_ARRAY[$((i + FIXER))]} * ${X_ARRAY[$((i + FIXER))]} )" | bc)
+
+    SUMY=$(echo "scale=2; ${SUMY} + ( ${Y_ARRAY[$((i + FIXER))]} )" | bc)
+
+    SUMXY=$(echo "scale=2; ${SUMXY} + ( ${X_ARRAY[$((i + FIXER))]} * ${Y_ARRAY[$((i + FIXER))]} )" | bc)
   done
-  FIXER=$FIXER+${LINES_IN_FILES[$COUNTER3]}
 
+  A=$(echo "scale=2; ( ${LINES_IN_FILES[$COUNTER3]} * ${SUMXY} - ${SUMX} * ${SUMY} ) / ( ${LINES_IN_FILES[$COUNTER3]} * ${SUMX2} - ${SUMX} * ${SUMX})" | bc )
+  B=$(echo "scale=2; ( ${SUMY} - ( ${A} * ${SUMX} ) ) / ( ${LINES_IN_FILES[$COUNTER3]} )" | bc)
 
+  for ((i=0; i<${LINES_IN_FILES[$COUNTER3]}; i++))
+  do
+    ERR1=$(echo "scale=2; (((${Y_ARRAY[$((i + FIXER))]}) - (${A} * ${X_ARRAY[$((i + FIXER))]} + ${B}))) / 1  " | bc) #read bc manual for  /1
+    ERR=$(echo "scale=2; ${ERR} + (${ERR1} * ${ERR1}) " | bc)
+  done
 
   echo "FILE: ${FILE_NAMES[$COUNTER3]}, a=$A b=$B c=1 err=$ERR"
+
+  FIXER=$FIXER+${LINES_IN_FILES[$COUNTER3]}
   ((COUNTER3++))
 done
